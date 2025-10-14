@@ -6,7 +6,37 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use Laravel\Socialite\Facades\Socialite;
+
+Route::middleware('guest')->group(function () {
+
+    Route::get('/login', function () {
+        return Socialite::driver('google')->redirect();
+    })->name('login');
+
+    Route::get('/google/auth', function () {
+        $googleUser = Socialite::driver('google')->user();
+
+        $user = User::updateOrCreate([
+            'google_id' => $googleUser->id,
+        ], [
+            'name' => $googleUser->name,
+            'email' => $googleUser->email,
+            'google_access_token' => $googleUser->token,
+            'google_refresh_token' => $googleUser->refreshToken,
+            'google_expires_in' => $googleUser->expiresIn,
+            'google_avatar_url' => $googleUser->avatar,
+        ]);
+
+        Auth::login($user);
+
+        return "got em";
+    });
+
+});
 
 Route::post('/register', [RegisteredUserController::class, 'store'])
     ->middleware('guest')
